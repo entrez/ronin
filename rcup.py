@@ -38,15 +38,20 @@ except FileNotFoundError as ex:
     print2('file does not exist: ~/.nethackrc')
     exit(1)
 except UnicodeDecodeError as ex:
-    # shouldn't happen since we are using rb mode
+    # shouldn't happen since we are using rb mode, but leaving it here in case
+    # that is changed in the future
     print2('decode error: {}'.format(ex))
     exit(1)
 
 if nethackrc is None or len(nethackrc) == 0:
-    print('error: rcfile empty')
+    print('error: ~/.nethackrc is empty')
     exit(1)
 else:
-    rc_hash = md5(b'\n' + nethackrc)
+    # we need to run the contents of the rcfile through strip() because \n is
+    # appended to the beginning of the file for some reason if it is submitted
+    # via the web interface -- if the only difference in the two files is
+    # removed by strip() there's really no point in updating it anyway though.
+    rc_hash = md5(nethackrc.strip())
 
 nh = 'nh{0:s}'.format(nethack_version.replace('.', ''))
 rc_url = 'https://alt.org/nethack/userdata/{letter}/{user}/{user}.{nh}rc'.format(
@@ -55,7 +60,7 @@ rc_url = 'https://alt.org/nethack/userdata/{letter}/{user}/{user}.{nh}rc'.format
     nh = nh)
 r = requests.get(rc_url)
 if r.status_code == 200:
-    oldrc_hash = md5(r.content)
+    oldrc_hash = md5(r.content.strip())
 else:
     oldrc_hash = ''
 
@@ -87,11 +92,11 @@ r = requests.get(rc_url)
 if r.status_code != 200:
     server_error(submission, 'updated rcfile retrieval')
 else:
-    newrc_hash = md5(r.content)
+    newrc_hash = md5(r.content.strip())
     if newrc_hash.digest() == rc_hash.digest():
         print2('update successful:\n{url:s}'.format(url = rc_url))
     else:
-        print2('hmm, hashes differ:\nold: {old}\nnew: {new}'.format(
+        print2('hmm... hashes differ even after update!\nold: {old}\nnew: {new}'.format(
             old = rc_hash.hexdigest(),
             new = newrc_hash.hexdigest()
         ))
