@@ -18,7 +18,7 @@ else
     read -p'alt.org password (blank aborts): ' -es nao_pass
     test -n "$nao_pass" || exit 0
     echo >>~/.vimrc '" keep nao .nethackrc updated'
-    echo >>~/.vimrc "autocmd! BufWritePost ~/.nethackrc sil !$PWD/rcup.py $nao_user '$nao_pass' &"
+    echo >>~/.vimrc "autocmd! BufWritePost ~/.nethackrc sil!!$PWD/rcup.py $nao_user '$nao_pass' &"
     echo >&2
     echo >&2 'Done.'
 fi
