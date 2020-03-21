@@ -10,13 +10,15 @@ nao_ver = '3.6.4'
 def print2(*args, **argv):
     print(*args, **argv, file=sys.stderr)
 
-def server_error(response, explanation = 'connection attempt'):
+def server_error(response, explanation = 'connection attempt', **argv):
     # {{{
+    server_name = argv.get('server', 'server')
     print2(
-        'error\n{2:s}: nao responded {0:n} {1:s}'.format(
-            response.status_code,
-            response.reason,
-            explanation
+        'error\n{action:s}: {site:s} responded {err:n} {msg:s}'.format(
+            action = explanation,
+            site = server_name,
+            err = response.status_code,
+            msg = response.reason
         )
     )
     # }}}
@@ -113,6 +115,8 @@ sites = {
 
 for serv, reqs in sites.items():
     print2('updating {servername}'.format(servername = serv), end='...')
+    # TODO add try/catch block here to catch requests exceptions:
+    # ConnectionError, etc
     r = requests.get(**reqs['rcfile'])
     if r.status_code == 200:
         oldrc_hash = md5(r.content.strip())
@@ -127,17 +131,17 @@ for serv, reqs in sites.items():
     s = requests.Session()
     login = s.post(**reqs['login'])
     if login.status_code != 200:
-        server_error(login, 'login attempt')
+        server_error(login, 'login attempt', site = serv)
         continue
 
     rcedit = s.post(**reqs['rcedit'])
     if rcedit.status_code != 200:
-        server_error(rcedit, 'rcfile update')
+        server_error(rcedit, 'rcfile update', site = serv)
         continue
 
     r = requests.get(**reqs['rcfile'])
     if r.status_code != 200:
-        server_error(r, 'updated rcfile retrieval')
+        server_error(r, 'updated rcfile retrieval', site = serv)
         continue
     else:
         newrc_hash = md5(r.content.strip())
