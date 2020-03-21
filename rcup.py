@@ -5,17 +5,20 @@ import os
 import sys
 from hashlib import md5
 
-nethack_version = '3.6.4'
+nao_ver = '3.6.4'
 
 def print2(*args, **argv):
     print(*args, **argv, file=sys.stderr)
 
 def server_error(response, explanation = 'connection attempt'):
     # {{{
-    print2('{2:s}: nao responded {0:n} {1:s}'.format(response.status_code,
-                                                     response.reason,
-                                                     explanation))
-    exit(1)
+    print2(
+        'error\n{2:s}: nao responded {0:n} {1:s}'.format(
+            response.status_code,
+            response.reason,
+            explanation
+        )
+    )
     # }}}
 
 args = sys.argv[1:]
@@ -23,8 +26,7 @@ if len(args) != 2:
     print2('usage: {script} USER PASS'.format(script = os.path.basename(sys.argv[0])))
     exit()
 
-nao_user, nao_pass = args
-
+user, passwd = args
 
 rcfile = os.path.expanduser('~/.nethackrc')
 if not os.path.isfile(rcfile):
@@ -53,50 +55,96 @@ else:
     # removed by strip() there's really no point in updating it anyway though.
     rc_hash = md5(nethackrc.strip())
 
-nh = 'nh{0:s}'.format(nethack_version.replace('.', ''))
-rc_url = 'https://alt.org/nethack/userdata/{letter}/{user}/{user}.{nh}rc'.format(
-    letter = nao_user[0].lower(),
-    user = nao_user,
-    nh = nh)
-r = requests.get(rc_url)
-if r.status_code == 200:
-    oldrc_hash = md5(r.content.strip())
-else:
-    oldrc_hash = ''
+nh = 'nh{0:s}'.format(nao_ver.replace('.', ''))
 
-if oldrc_hash.digest() == rc_hash.digest():
-    print2('nao rcfile is already up to date: exiting')
-    exit()
-
-s = requests.Session()
-
-auth_data = {
-    'nao_username': nao_user,
-    'nao_password': nao_pass,
-    'submit': 'Login'
+sites = {
+    'nao': {
+        'login': {
+            'url': 'https://alt.org/nethack/login.php',
+            'data': {
+                'nao_username': user,
+                'nao_password': passwd,
+                'submit': 'Login'
+            }
+        },
+        'rcfile': {
+            'url': 'https://alt.org/nethack/userdata/{letter}/{user}/{user}.{nh}rc'.format(
+                letter = user[0],
+                user = user,
+                nh = nh
+            )
+        },
+        'rcedit': {
+            'url': 'https://alt.org/nethack/webconf/nhrc_edit.php',
+            'params': {
+                'nh': nh
+            },
+            'data': {
+                'rcdata': nethackrc,
+                'submit': 'Save'
+            }
+        }
+    },
+    'hdf': {
+        'login': {
+            'url': 'https://hardfought.org/nh/nethack/login.php',
+            'data': {
+                'username': user,
+                'password': passwd,
+                'submit': 'Login'
+            }
+        },
+        'rcfile': {
+            'url': 'https://hardfought.org/userdata/{letter}/{user}/nethack/{user}.{nh}rc'.format(
+                letter = user[0],
+                user = user,
+                nh = 'nh'
+            )
+        },
+        'rcedit': {
+            'url': 'https://www.hardfought.org/nh/nethack/rcedit.php',
+            'data': {
+                'rcdata': nethackrc,
+                'submit': 'Save'
+            }
+        }
+    }
 }
-login = s.post('https://alt.org/nethack/login.php', data = auth_data)
-if login.status_code != 200:
-    server_error(login, 'login attempt')
 
-nrc_data = {'rcdata': nethackrc,
-            'submit': 'Save'}
-nrc_params = {'nh': nh}
-submission = s.post('https://alt.org/nethack/webconf/nhrc_edit.php',
-       params = nrc_params, data = nrc_data)
-
-if submission.status_code != 200:
-    server_error(submission, 'rcfile update')
-
-r = requests.get(rc_url)
-if r.status_code != 200:
-    server_error(submission, 'updated rcfile retrieval')
-else:
-    newrc_hash = md5(r.content.strip())
-    if newrc_hash.digest() == rc_hash.digest():
-        print2('update successful:\n{url:s}'.format(url = rc_url))
+for serv, reqs in sites.items():
+    print2('updating {servername}'.format(servername = serv), end='...')
+    r = requests.get(**reqs['rcfile'])
+    if r.status_code == 200:
+        oldrc_hash = md5(r.content.strip())
     else:
-        print2('hmm... hashes differ even after update!\nold: {old}\nnew: {new}'.format(
-            old = rc_hash.hexdigest(),
-            new = newrc_hash.hexdigest()
-        ))
+        oldrc_hash = md5()
+
+    if oldrc_hash.digest() == rc_hash.digest():
+        print2('rcfile already up to date')
+        continue
+
+    # create session and login user
+    s = requests.Session()
+    login = s.post(**reqs['login'])
+    if login.status_code != 200:
+        server_error(login, 'login attempt')
+        continue
+
+    rcedit = s.post(**reqs['rcedit'])
+    if rcedit.status_code != 200:
+        server_error(rcedit, 'rcfile update')
+        continue
+
+    r = requests.get(**reqs['rcfile'])
+    if r.status_code != 200:
+        server_error(r, 'updated rcfile retrieval')
+        continue
+    else:
+        newrc_hash = md5(r.content.strip())
+        if newrc_hash.digest() == rc_hash.digest():
+            print2('done')
+        else:
+            print2('error\nhashes differ even after update!\nold: {old}\nnew: {new}'.format(
+                old = rc_hash.hexdigest(),
+                new = newrc_hash.hexdigest()
+            ))
