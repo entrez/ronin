@@ -52,7 +52,7 @@ if nethackrc is None or len(nethackrc) == 0:
     exit(1)
 else:
     # we need to run the contents of the rcfile through strip() because \n is
-    # appended to the beginning of the file for some reason if it is submitted
+    # prepended to the beginning of the file for some reason if it is submitted
     # via the web interface -- if the only difference in the two files is
     # removed by strip() there's really no point in updating it anyway though.
     rc_hash = md5(nethackrc.strip())
