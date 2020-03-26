@@ -1,0 +1,18 @@
+USAGE: rcup.py [-h] [-Ha] <USER> <PASS>
+
+This script can update rcfiles on NAO and/or hardfought.org; default behavior is
+to update NAO and to update hardfought, but this can be modified by the options
+listed in the next section.
+
+OPTIONS:
+    -h,-?,--help                Display this information
+
+    -H,--hdf,--hardfought       Enable hardfought.org (default)
+
+    --no-hdf,--no-hardfought    Disable hardfought.org
+
+    -a,--nao,--altorg           Enable nethack.alt.org (default)
+
+    --no-nao,--no-altorg        Disable nethack.alt.org
+
+
