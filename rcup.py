@@ -5,7 +5,7 @@ import os
 import sys
 from hashlib import md5
 
-nao_ver = '3.6.4'
+nao_ver = '3.6.6'
 
 def print2(*args, **argv):
     print(*args, **argv, file=sys.stderr)
