@@ -10,6 +10,27 @@ nao_ver = '3.6.6'
 def print2(*args, **argv):
     print(*args, **argv, file=sys.stderr)
 
+
+def rcfile_location():
+    # {{{
+    if os.name == 'nt':
+        # rcfiles for 3.6.3 and later are saved as
+        #   %HOMEDRIVE%\%HOMEPATH%\Nethack\.nethackrc
+        # earlier versions' config files are saved as
+        #   %NETHACKDIR%\defaults.nh
+        # see https://github.com/NetHack/NetHack/wiki/Windows-NetHack-3.6.3-Breaking-Change-:-Directory-Paths
+        rcfl = os.path.join(os.getenv('HOMEDRIVE'), os.getenv('HOMEPATH'), 'Nethack', '.nethackrc')
+        if not os.path.isfile(rcfl):
+            rcfl = os.path.join(os.getenv('NETHACKDIR', default=os.getenv('HOME')),
+                                'defaults.nh')
+    else:
+        # on *nix systems just use ~/.nethackrc
+        rcfl = os.path.join(os.getenv('HOME'), '.nethackrc')
+
+    return rcfl
+    # }}}
+
+
 def server_error(response, explanation = 'connection attempt', **argv):
     # {{{
     server_name = argv.get('server', 'server')
@@ -23,6 +44,7 @@ def server_error(response, explanation = 'connection attempt', **argv):
     )
     # }}}
 
+
 args = sys.argv[1:]
 if len(args) != 2:
     print2('usage: {script} USER PASS'.format(script = os.path.basename(sys.argv[0])))
@@ -30,16 +52,16 @@ if len(args) != 2:
 
 user, passwd = args
 
-rcfile = os.path.expanduser('~/.nethackrc')
+rcfile = rcfile_location()
 if not os.path.isfile(rcfile):
-    print2('file does not exist: ~/.nethackrc')
+    print2('file does not exist: {}'.format(rcfile))
     exit(1)
 
 try:
     with open(rcfile, 'rb') as f:
         nethackrc = f.read()
 except FileNotFoundError as ex:
-    print2('file does not exist: ~/.nethackrc')
+    print2('file does not exist: {}'.format(rcfile))
     exit(1)
 except UnicodeDecodeError as ex:
     # shouldn't happen since we are using rb mode, but leaving it here in case
@@ -48,7 +70,7 @@ except UnicodeDecodeError as ex:
     exit(1)
 
 if nethackrc is None or len(nethackrc) == 0:
-    print('error: ~/.nethackrc is empty')
+    print2('error: rcfile is empty')
     exit(1)
 else:
     # we need to run the contents of the rcfile through strip() because \n is
