@@ -11,7 +11,7 @@ then
     echo >&2 'No .vimrc file in your home directory.'
     exit 1
 else
-    echo >&2 'Adds an autocommand to your .vimrc to use "ronin" (via the rcup.py script)'
+    echo >&2 'Adds an autocommand to your .vimrc to use "sync-nhrc" (via the rcup.py script)'
     echo >&2 'to sync remote files with your local copy whenever ~/.nethackrc is saved.'
     echo >&2
     echo >&2 'NB: this will write your username & password in plaintext to your .vimrc!!'
@@ -41,16 +41,16 @@ else
         echo >&2 "no servers selected. goodbye"
         exit 0
     fi
-    printf >>"$vimrcfile" '" keep .nethackrc updated on%s via ronin\n' "$servers"
+    printf >>"$vimrcfile" '" keep .nethackrc updated on%s via sync-nhrc\n' "$servers"
     autocmd=""
     if [ "$hdf_user" = "$nao_user" ] && [ "$hdf_pass" = "$nao_pass" ]; then
-        autocmd="$PWD/rcup.py -ha $nao_user '$nao_pass' &"
+        autocmd="$PWD/rcup.py -sHa $nao_user '$nao_pass' &"
     else
         if [ -n "$nao_user" ]; then
-            autocmd="$PWD/rcup.py  --nao --no-hdf $nao_user '$nao_pass' &"
+            autocmd="$PWD/rcup.py --silent --nao --no-hdf $nao_user '$nao_pass' &"
         fi
         if [ -n "$hdf_user" ]; then
-            autocmd="${autocmd}$([ -n "$autocmd" ] && echo "; ")$PWD/rcup.py --no-nao --hdf $hdf_user '$hdf_pass' &"
+            autocmd="${autocmd}$([ -n "$autocmd" ] && echo "; ")$PWD/rcup.py --silent --no-nao --hdf $hdf_user '$hdf_pass' &"
         fi
     fi
     echo >>"$vimrcfile" "autocmd! BufWritePost ~/.nethackrc sil!!$autocmd"

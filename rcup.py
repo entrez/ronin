@@ -11,12 +11,14 @@ import textwrap
 # Upload to both hardfought and nao by default; behavior can be changed
 # dynamically from the defaults set here with cmdline options
 HARDFOUGHT, NAO = True, True
+SILENT = False
 # Modify this NH version's rcfile on NAO
 nao_ver = '3.6.6'
 # allowed command line options {{{3
 HDF_FLAGS = ['-hardfought', '-hdf', 'H']
 NAO_FLAGS = ['-nao', '-altorg', 'a']
 HELP_FLAGS = ['-help', 'h', '?']
+SILENT_FLAGS = ['-silent', 's']
 
 
 def negate(flags): # {{{2
@@ -51,6 +53,8 @@ desc = textwrap.fill(desc, w)
 options = [
     [",".join(ffmt(sorted(HELP_FLAGS, key=lambda f:len(f)))),
      "Display this information"],
+    [",".join(ffmt(sorted(SILENT_FLAGS, key=lambda f:len(f)))),
+     "Run without printing status"],
     [",".join(ffmt(sorted(HDF_FLAGS, key=lambda f:len(f)))),
      "Enable hardfought.org{}".format(' (default)' if HARDFOUGHT else '')],
     [",".join(ffmt(sorted(negate(HDF_FLAGS), key=lambda f:len(f)))),
@@ -71,7 +75,8 @@ HELPTEXT = '{usage}\n\n{description}\n\nOPTIONS:\n{options}\n'.lstrip().format(
 
 
 def print2(*args, **argv): # {{{2
-    print(*args, **argv, file=sys.stderr)
+    if not SILENT:
+        print(*args, **argv, file=sys.stderr)
 
 
 def get_home_dir(): # {{{2
@@ -138,6 +143,7 @@ def parse_args(args): # {{{2
 
 def parse_options(options): #{{{2
     # allowable flags
+    global SILENT
     hdf, nao = HARDFOUGHT, NAO
     for o in options:
         # enable/disable hdf {{{3
@@ -150,6 +156,8 @@ def parse_options(options): #{{{2
             nao = True
         elif o in negate(NAO_FLAGS):
             nao = False
+        elif o in SILENT_FLAGS:
+            SILENT = True
         elif o in HELP_FLAGS:
             print2(HELPTEXT)
             exit(0)
